@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Data Aggregator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8faff; }
+        .card { 
+            transition: transform 0.3s ease, box-shadow 0.3s ease; 
+            min-height: 180px; /* Ensure consistent height */
+        }
+        .card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15); 
+        }
+        .error-card {
+            background-color: #fef2f2; /* Red-50 */
+            border-color: #f87171; /* Red-400 */
+        }
+        .json-output {
+            background-color: #1f2937; /* Dark Gray/Slate */
+            color: #d1d5db; /* Light Gray */
+            padding: 1rem;
+            border-radius: 0.75rem;
+            max-height: 400px;
+            overflow-y: scroll;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-10 min-h-screen">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="4xl font-extrabold text-indigo-700">Galactic Aggregator Dashboard</h1>
+            <p class="text-gray-500 mt-2">Data aggregated from NASA (APOD, NEOs), SpaceX, and Open-Notify (ISS & Astros).</p>
+        </header>
+
+        <div id="status-message" class="text-center text-lg font-medium text-gray-600 mb-8 hidden">
+            <div id="loading-indicator" class="flex items-center justify-center text-indigo-500">
+                <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span id="loading-text">Fetching aggregated space data...</span>
+            </div>
+            <div id="error-message" class="text-red-600 font-bold hidden"></div>
+        </div>
+
+        <div id="data-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 hidden">
+            
+            <div id="card-apod_title" class="card bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xl font-semibold text-indigo-600 flex items-center mb-3">
+                        <span class="mr-2">✨</span> APOD Title
+                    </h3>
+                    <p id="apod_title" class="text-lg font-medium text-gray-700 leading-relaxed break-words">Loading...</p>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">NASA's daily featured image.</p>
+            </div>
+
+            <div id="card-spacex_flight_number" class="card bg-white p-6 rounded-xl shadow-lg border-t-4 border-emerald-500 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xl font-semibold text-emerald-600 flex items-center mb-3">
+                        <span class="mr-2">🚀</span> Latest Launch #
+                    </h3>
+                    <p id="spacex_flight_number" class="text-3xl font-extrabold text-gray-800 break-words">Loading...</p>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">Latest mission flight number.</p>
+            </div>
+
+            <div id="card-iss_location" class="card bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xl font-semibold text-yellow-600 flex items-center mb-3">
+                        <span class="mr-2">🛰️</span> ISS Coordinates
+                    </h3>
+                    <p id="iss_location" class="text-base font-bold text-gray-800 break-words">Loading...</p>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">International Space Station position.</p>
+            </div>
+
+            <div id="card-people_in_space_count" class="card bg-white p-6 rounded-xl shadow-lg border-t-4 border-cyan-500 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xl font-semibold text-cyan-600 flex items-center mb-3">
+                        <span class="mr-2">🧑‍🚀</span> People in Space
+                    </h3>
+                    <p id="people_in_space_count" class="text-3xl font-extrabold text-gray-800 break-words">Loading...</p>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">Astronauts currently in orbit.</p>
+            </div>
+            
+            <div id="card-neo_count" class="card bg-white p-6 rounded-xl shadow-lg border-t-4 border-pink-500 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xl font-semibold text-pink-600 flex items-center mb-3">
+                        <span class="mr-2">☄️</span> NEOs Today
+                    </h3>
+                    <p id="neo_count" class="text-3xl font-extrabold text-gray-800 break-words">Loading...</p>
+                </div>
+                <p class="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">Near-Earth Objects tracked today.</p>
+            </div>
+        </div>
+
+        <div class="mt-12">
+            <h2 class="text-2xl font-bold text-gray-700 mb-4">Raw JSON Output</h2>
+            <pre id="json-output" class="json-output"></pre>
+        </div>
+
+        <div class="text-center mt-12">
+            <button id="toggle-refresh-button" class="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-150 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50">
+                Stop Continuous Refresh
+            </button>
+            <p id="timer-text" class="text-sm text-gray-500 mt-3">Refreshing every 30 seconds...</p>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration (Remember to run uvicorn with --port 8001)
+        const FASTAPI_URL = 'http://127.0.0.1:8001/api/dashboard';
+        const REFRESH_INTERVAL_MS = 30000; // 30 seconds (as requested)
+        const RETRY_INTERVAL_MS = 5000; // 5 seconds for cache-warmup retry
+        let retryCount = 0;
+        const MAX_RETRIES = 12; // Increased to 12 (60 seconds total waiting)
+
+        // Updated variable names
+        const toggleRefreshButton = document.getElementById('toggle-refresh-button');
+        const statusMessage = document.getElementById('status-message');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const loadingText = document.getElementById('loading-text');
+        const errorMessage = document.getElementById('error-message');
+        const dataContainer = document.getElementById('data-container');
+        const jsonOutput = document.getElementById('json-output');
+        const timerText = document.getElementById('timer-text');
+
+        // List of all data keys and their corresponding card IDs
+        const DATA_KEYS = ['apod_title', 'spacex_flight_number', 'iss_location', 'people_in_space_count', 'neo_count'];
+        let refreshTimer; // Holds the interval ID for continuous refresh
+        let countdownTimer; // Holds the interval ID for the countdown
+        let isRefreshing = true; // NEW: State variable to track refresh status
+
+        function setCardContent(key, content) {
+            const contentElement = document.getElementById(key);
+            const cardElement = document.getElementById(`card-${key}`);
+            
+            const contentString = String(content);
+            const isError = contentString.toLowerCase().includes('error') || contentString.toLowerCase().includes('n/a') || contentString.toLowerCase().includes('failed');
+
+            contentElement.textContent = contentString;
+            
+            if (isError) {
+                cardElement.classList.add('error-card', 'border-red-500');
+                cardElement.classList.remove('border-indigo-500', 'border-emerald-500', 'border-yellow-500', 'border-cyan-500', 'border-pink-500', 'bg-white');
+
+                contentElement.textContent = contentString.startsWith('HTTP') ? contentString : "Data Unavailable";
+                contentElement.classList.add('text-red-500', 'font-bold');
+                contentElement.classList.remove('text-gray-700', 'text-base');
+            } else {
+                cardElement.classList.remove('error-card', 'border-red-500');
+                cardElement.classList.add('bg-white');
+                contentElement.classList.remove('text-red-500', 'font-bold');
+                
+                // Reapply original border colors
+                if (key === 'apod_title') cardElement.classList.add('border-indigo-500');
+                if (key === 'spacex_flight_number') cardElement.classList.add('border-emerald-500');
+                if (key === 'iss_location') cardElement.classList.add('border-yellow-500');
+                if (key === 'people_in_space_count') cardElement.classList.add('border-cyan-500');
+                if (key === 'neo_count') cardElement.classList.add('border-pink-500');
+            }
+        }
+
+        function startCountdown() {
+            let timeLeft = REFRESH_INTERVAL_MS / 1000;
+            
+            // Clear any existing timer
+            if (countdownTimer) clearInterval(countdownTimer);
+
+            countdownTimer = setInterval(() => {
+                timeLeft -= 1;
+                if (timeLeft >= 0) {
+                    timerText.textContent = `Next refresh in ${timeLeft} seconds...`;
+                } else {
+                    // This block should ideally not be hit as fetchDashboardData clears the interval
+                    clearInterval(countdownTimer);
+                }
+            }, 1000);
+        }
+        
+        // NEW function to handle starting the interval
+        function startContinuousRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer); // Clear any old timer just in case
+            refreshTimer = setInterval(fetchDashboardData, REFRESH_INTERVAL_MS);
+            isRefreshing = true;
+            toggleRefreshButton.textContent = "Stop Continuous Refresh";
+            toggleRefreshButton.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+            toggleRefreshButton.classList.add('bg-red-600', 'hover:bg-red-700');
+            startCountdown();
+            console.log(`Continuous refresh started. Interval: ${REFRESH_INTERVAL_MS / 1000}s`);
+        }
+
+        // NEW function to handle stopping the interval
+        function stopContinuousRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            if (countdownTimer) clearInterval(countdownTimer);
+            isRefreshing = false;
+            toggleRefreshButton.textContent = "Start Continuous Refresh";
+            toggleRefreshButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+            toggleRefreshButton.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            timerText.textContent = "Refresh stopped. Click 'Start Continuous Refresh' to resume.";
+            console.log("Continuous refresh stopped.");
+        }
+
+
+        async function fetchDashboardData(manual = false, isRetry = false) {
+            
+            // Clear interval only if it's NOT a manual fetch (otherwise, it gets restarted right away)
+            if (!manual && refreshTimer) clearInterval(refreshTimer);
+            if (countdownTimer) clearInterval(countdownTimer);
+
+
+            // 1. UI Setup: Show loading, hide data/error
+            statusMessage.classList.remove('hidden');
+            loadingIndicator.classList.remove('hidden');
+            loadingText.textContent = isRetry 
+                ? `Waiting for cache to warm up (max 60s)... Retrying (${retryCount}/${MAX_RETRIES})` 
+                : (manual ? "Fetching data now..." : "Refreshing aggregated space data...");
+            
+            errorMessage.classList.add('hidden');
+            dataContainer.classList.add('hidden');
+            toggleRefreshButton.disabled = true;
+            
+            // Temporarily update button text
+            let originalButtonText = toggleRefreshButton.textContent;
+            toggleRefreshButton.textContent = "Fetching...";
+            timerText.textContent = isRetry ? "Waiting..." : "Fetching...";
+
+            try {
+                // 2. Fetch Data
+                const response = await fetch(FASTAPI_URL);
+
+                if (response.status === 503) {
+                    // Handle 503 Service Unavailable (Cache not ready)
+                    if (retryCount < MAX_RETRIES) {
+                        retryCount++;
+                        console.warn(`Received 503, cache not ready. Retrying in ${RETRY_INTERVAL_MS}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL_MS));
+                        return await fetchDashboardData(manual, true); // Recursive retry
+                    } else {
+                        throw new Error("Server returned status: 503. Cache failed to populate after multiple retries.");
+                    }
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // 3. Process Data
+                DATA_KEYS.forEach(key => {
+                    setCardContent(key, data[key] || "N/A");
+                });
+                
+                // Output raw JSON
+                jsonOutput.textContent = JSON.stringify(data, null, 2);
+                
+                // 4. UI Success: Hide loading, show data
+                dataContainer.classList.remove('hidden');
+                statusMessage.classList.add('hidden');
+                retryCount = 0; // Reset retry count on success
+
+            } catch (error) {
+                // 5. UI Error: Show error message
+                console.error("Fetch Error:", error);
+
+                let displayMessage = `Failed to connect to FastAPI server at ${FASTAPI_URL}.`;
+
+                if (error.message.includes('503')) {
+                    displayMessage = `FastAPI server is running but the data cache is unavailable. Please check the Python console for external API errors.`;
+                } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+                    displayMessage = `Could not connect to FastAPI server. Ensure the server is running on port 8001 and check for CORS/firewall issues.`;
+                } else {
+                    displayMessage += ` Error: ${error.message}`;
+                }
+
+
+                errorMessage.textContent = displayMessage;
+                errorMessage.classList.remove('hidden');
+                loadingIndicator.classList.add('hidden');
+                jsonOutput.textContent = `// ${displayMessage}`;
+                dataContainer.classList.add('hidden'); // Ensure data stays hidden on critical error
+                
+            } finally {
+                // 6. UI Cleanup and restart timers
+                toggleRefreshButton.disabled = false;
+                
+                // This is the CRITICAL change: restart the loop ONLY if isRefreshing is true
+                if (isRefreshing) {
+                    startContinuousRefresh();
+                } else {
+                    // If refresh was stopped, reset button text after fetch is done
+                    toggleRefreshButton.textContent = originalButtonText;
+                    stopContinuousRefresh(); // Ensure the UI reflects the stopped state after the fetch
+                }
+            }
+        }
+        
+        // NEW Toggle function
+        function handleToggle() {
+            if (isRefreshing) {
+                stopContinuousRefresh();
+            } else {
+                // When starting, immediately fetch data then start the timer
+                isRefreshing = true; 
+                fetchDashboardData(true); 
+            }
+        }
+
+
+        // Initial fetch on load, then start the continuous interval
+        window.onload = () => {
+             // Initial manual fetch to load data immediately
+            fetchDashboardData(true); 
+        };
+        
+        // Attach click listener for manual refresh
+        toggleRefreshButton.addEventListener('click', handleToggle);
+    </script>
+</body>
+</html>
