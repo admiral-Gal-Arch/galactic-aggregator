@@ -112,17 +112,24 @@
         </div>
 
         <div class="text-center mt-12">
+            
             <button id="toggle-refresh-button" class="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-150 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50">
                 Stop Continuous Refresh
             </button>
+            
+            <a href="https://galactic-aggregator-api.onrender.com/docs" target="_blank" 
+               class="px-8 py-3 ml-4 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 transition duration-150 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-400 focus:ring-opacity-50 inline-block">
+                View API Documentation
+            </a>
+
             <p id="timer-text" class="text-sm text-gray-500 mt-3">Refreshing every 30 seconds...</p>
         </div>
     </div>
 
     <script>
-        // API Configuration (Remember to run uvicorn with --port 8001)
-        const API_HOST = 'https://galactic-aggregator-api-xyz.onrender.com';
-        const FASTAPI_URL = 'https://galactic-aggregator-api.onrender.com/api/dashboard';
+        // API Configuration (Set to your live Render URL)
+        const API_HOST = 'https://galactic-aggregator-api.onrender.com'; 
+        const FASTAPI_URL = `${API_HOST}/api/dashboard`;
         const REFRESH_INTERVAL_MS = 30000; // 30 seconds (as requested)
         const RETRY_INTERVAL_MS = 5000; // 5 seconds for cache-warmup retry
         let retryCount = 0;
@@ -185,7 +192,6 @@
                 if (timeLeft >= 0) {
                     timerText.textContent = `Next refresh in ${timeLeft} seconds...`;
                 } else {
-                    // This block should ideally not be hit as fetchDashboardData clears the interval
                     clearInterval(countdownTimer);
                 }
             }, 1000);
@@ -218,7 +224,6 @@
 
         async function fetchDashboardData(manual = false, isRetry = false) {
             
-            // Clear interval only if it's NOT a manual fetch (otherwise, it gets restarted right away)
             if (!manual && refreshTimer) clearInterval(refreshTimer);
             if (countdownTimer) clearInterval(countdownTimer);
 
@@ -283,7 +288,7 @@
                 if (error.message.includes('503')) {
                     displayMessage = `FastAPI server is running but the data cache is unavailable. Please check the Python console for external API errors.`;
                 } else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                    displayMessage = `Could not connect to FastAPI server. Ensure the server is running on port 8001 and check for CORS/firewall issues.`;
+                    displayMessage = `Could not connect to FastAPI server. Ensure the server is running and check for CORS issues.`;
                 } else {
                     displayMessage += ` Error: ${error.message}`;
                 }
@@ -332,5 +337,4 @@
         toggleRefreshButton.addEventListener('click', handleToggle);
     </script>
 </body>
-
 </html>
