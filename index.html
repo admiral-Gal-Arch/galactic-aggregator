@@ -121,7 +121,8 @@
 
     <script>
         // API Configuration (Remember to run uvicorn with --port 8001)
-        const FASTAPI_URL = 'http://127.0.0.1:8001/api/dashboard';
+        const API_HOST = 'https://galactic-aggregator-api-xyz.onrender.com';
+        const FASTAPI_URL = 'https://galactic-aggregator-api.onrender.com/api/dashboard';
         const REFRESH_INTERVAL_MS = 30000; // 30 seconds (as requested)
         const RETRY_INTERVAL_MS = 5000; // 5 seconds for cache-warmup retry
         let retryCount = 0;
@@ -331,4 +332,5 @@
         toggleRefreshButton.addEventListener('click', handleToggle);
     </script>
 </body>
+
 </html>
